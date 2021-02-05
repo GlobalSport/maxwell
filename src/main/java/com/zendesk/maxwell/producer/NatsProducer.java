@@ -1,5 +1,6 @@
 package com.zendesk.maxwell.producer;
 
+import com.zendesk.maxwell.util.InterpolatedStringsHandler;
 import io.nats.client.Connection;
 import com.zendesk.maxwell.MaxwellContext;
 import com.zendesk.maxwell.row.RowMap;
@@ -14,20 +15,13 @@ public class NatsProducer extends AbstractProducer {
 
 	private static final Logger LOGGER = LoggerFactory.getLogger(NatsProducer.class);
 	private final Connection natsConnection;
-	private final String natsSubjectPrefix;
-	private final String subjectHierarchiesTemplate;
+	private final String natsSubjectTemplate;
 
 	public NatsProducer(MaxwellContext context) {
 		super(context);
 		try {
 			this.natsConnection = Nats.connect(context.getConfig().natsUrl);
-			final String natsPrefix = context.getConfig().natsSubjectPrefix;
-			this.natsSubjectPrefix = natsPrefix.equals("") ? "": natsPrefix + "." ;
-			this.subjectHierarchiesTemplate = context.getConfig().natsSubjectHierarchies;
-
-			if( !this.subjectHierarchiesTemplate.contains("%db%") || !this.subjectHierarchiesTemplate.contains("%table%") || !this.subjectHierarchiesTemplate.contains("%type%") ) {
-				throw new IllegalArgumentException(String.format("Invalid nats config for subjectHierarchies '%s'", this.subjectHierarchiesTemplate));
-			}
+			this.natsSubjectTemplate = context.getConfig().natsSubject;
 
 		} catch (IOException | InterruptedException e) {
 			throw new RuntimeException(e);
@@ -43,8 +37,7 @@ public class NatsProducer extends AbstractProducer {
 		}
 
 		String value = r.toJSON(outputConfig);
-		String subjectHierarchies = getSubjectHierarchies(r);
-		String natsSubject = natsSubjectPrefix + subjectHierarchies;
+		String natsSubject = new InterpolatedStringsHandler(this.natsSubjectTemplate).generateFromRowMap(r);
 
 		natsConnection.publish(natsSubject, value.getBytes(StandardCharsets.UTF_8));
 		if ( r.isTXCommit() ) {
@@ -53,22 +46,5 @@ public class NatsProducer extends AbstractProducer {
 		if ( LOGGER.isDebugEnabled()) {
 			LOGGER.debug("->  nats subject:" + natsSubject + ", message:" + value);
 		}
-	}
-
-	String getSubjectHierarchies(RowMap r) {
-		String table = r.getTable();
-
-		if ( table == null )
-			table = "";
-
-		String type = r.getRowType();
-
-		if ( type == null )
-			type = "";
-
-		return subjectHierarchiesTemplate
-				.replace("%db%", r.getDatabase())
-				.replace("%table%", table)
-				.replace("%type%", type);
 	}
 }

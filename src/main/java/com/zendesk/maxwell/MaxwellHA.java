@@ -1,17 +1,11 @@
 package com.zendesk.maxwell;
 
 import org.jgroups.JChannel;
-import org.jgroups.protocols.raft.RaftLeaderException;
 import org.jgroups.protocols.raft.Role;
-import org.jgroups.protocols.raft.StateMachine;
 import org.jgroups.raft.RaftHandle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MaxwellHA {
