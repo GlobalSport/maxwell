@@ -4,7 +4,7 @@ import com.zendesk.maxwell.row.RowIdentity;
 import com.zendesk.maxwell.row.RowMap;
 
 /**
- * An utility class to extrapolate subscription, channel templates.
+ * An utility class to interpolate subscription, channel templates.
  * <p>
  * An input string can contains any combination of:
  * - %{db}
