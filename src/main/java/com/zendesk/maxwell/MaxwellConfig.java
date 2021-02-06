@@ -564,7 +564,7 @@ public class MaxwellConfig extends AbstractConfig {
 		this.rabbitmqMessagePersistent    	= fetchBooleanOption("rabbitmq_message_persistent", options, properties, false);
 		this.rabbitmqDeclareExchange		= fetchBooleanOption("rabbitmq_declare_exchange", options, properties, true);
 
-		this.natsUrl			= fetchStringOption("nats_url", options, properties, "localhost:4222");
+		this.natsUrl			= fetchStringOption("nats_url", options, properties, "nats://localhost:4222");
 		this.natsSubject		= fetchStringOption("nats_subject", options, properties, "%{database}.%{table}");
 
 		this.redisHost			= fetchStringOption("redis_host", options, properties, "localhost");
