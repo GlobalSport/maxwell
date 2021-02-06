@@ -92,7 +92,7 @@ sqs_queue_uri                  | STRING                              | SQS Queue
 ## nats producer
 option                         | argument                            | description                                         | default
 -------------------------------|-------------------------------------| --------------------------------------------------- | -------
-nats_url                       | STRING     | Url(s) of nats connection, compatible with [user:password](https://docs.nats.io/developing-with-nats/security/userpass#connecting-with-a-user-password-in-the-url) syntax | localhost:4222
+nats_url                       | STRING     | Comma separated list of nats Url(s, compatible with [user:password](https://docs.nats.io/developing-with-nats/security/userpass#connecting-with-a-user-password-in-the-url) syntax | nats://localhost:4222
 nats_subject                   | STRING     | A string template for the subject hierarchies, `%{database}` and `%{table}` will be substituted. | `%{database}.%{table}`
 
 ## pubsub producer
