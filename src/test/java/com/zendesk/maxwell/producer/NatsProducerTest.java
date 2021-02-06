@@ -8,15 +8,21 @@ import com.zendesk.maxwell.replication.Position;
 import com.zendesk.maxwell.row.RowMap;
 import io.nats.client.Connection;
 import io.nats.client.Nats;
+import io.nats.client.Options;
+import nl.altindag.log.LogCaptor;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.mockito.Mockito.*;
 
@@ -30,11 +36,20 @@ public class NatsProducerTest {
 
 	private final Connection natsConnection = mock(Connection.class);
 
+	Options option;
+
 
 	@Before
 	public void beforeEach() {
-		config.natsUrl = "nats://localhost";
+		config.natsUrl = "nats://localhost,nats://localhost2";
 		config.natsSubject = "%{database}.%{table}.%{type}";
+
+		List<String> urls = Arrays.asList(config.natsUrl.split("\\s*,\\s*"));
+		Options.Builder optionBuilder = new Options.Builder();
+		for (String url : urls) {
+			optionBuilder = optionBuilder.server(url);
+		}
+		 option = optionBuilder.build();
 
 		when(contextMock.getConfig()).thenReturn(config);
 		when(contextMock.getMetrics()).thenReturn(new NoOpMetrics());
@@ -45,7 +60,7 @@ public class NatsProducerTest {
 	public void failToConnectToServer() throws IOException, InterruptedException {
 		final IOException ioException = new IOException("Fail to connect to nats server.");
 		try (MockedStatic<Nats> theMock = Mockito.mockStatic(Nats.class)) {
-			theMock.when(() -> Nats.connect(anyString())).thenThrow(
+			theMock.when(() -> Nats.connect((option))).thenThrow(
 					ioException
 			);
 
@@ -62,12 +77,15 @@ public class NatsProducerTest {
 	public void pushRowToSubject() throws Exception {
 
 		try (MockedStatic<Nats> theMock = Mockito.mockStatic(Nats.class)) {
-			theMock.when(() -> Nats.connect(eq(config.natsUrl))).thenReturn(natsConnection);
+			theMock.when(() -> Nats.connect(eq(option))).thenReturn(natsConnection);
 
 			NatsProducer natsProducer = new NatsProducer(contextMock);
 			RowMap rowMap = newRowMap();
 
 			byte[] expectedBytes = rowMap.toJSON(config.outputConfig).getBytes(StandardCharsets.UTF_8);
+
+			theMock.when(() -> natsConnection.getMaxPayload()).thenReturn((long) (expectedBytes.length + 1));
+
 			doNothing().when(natsConnection).publish(eq(TEST_TOPIC), eq(expectedBytes));
 
 			natsProducer.push(rowMap);
@@ -80,7 +98,7 @@ public class NatsProducerTest {
 	@Test
 	public void pushRowToSubject_withTxCommit() throws Exception {
 		try (MockedStatic<Nats> theMock = Mockito.mockStatic(Nats.class)) {
-			theMock.when(() -> Nats.connect(eq(config.natsUrl))).thenReturn(natsConnection);
+			theMock.when(() -> Nats.connect(eq(option))).thenReturn(natsConnection);
 
 			NatsProducer natsProducer = new NatsProducer(contextMock);
 			RowMap rowMap = newRowMap();
@@ -88,6 +106,9 @@ public class NatsProducerTest {
 			rowMap.setTXCommit();
 
 			byte[] expectedBytes = rowMap.toJSON(config.outputConfig).getBytes(StandardCharsets.UTF_8);
+
+			theMock.when(() -> natsConnection.getMaxPayload()).thenReturn((long) (expectedBytes.length + 1));
+
 			doNothing().when(natsConnection).publish(eq(TEST_TOPIC), eq(expectedBytes));
 
 			natsProducer.push(rowMap);
@@ -101,7 +122,7 @@ public class NatsProducerTest {
 	public void pushRowToSubject_withoutOutput() throws Exception {
 
 		try (MockedStatic<Nats> theMock = Mockito.mockStatic(Nats.class)) {
-			theMock.when(() -> Nats.connect(eq(config.natsUrl))).thenReturn(natsConnection);
+			theMock.when(() -> Nats.connect(eq(option))).thenReturn(natsConnection);
 
 			NatsProducer natsProducer = new NatsProducer(contextMock);
 
@@ -109,6 +130,9 @@ public class NatsProducerTest {
 			rowMap.suppress();
 
 			byte[] expectedBytes = rowMap.toJSON(config.outputConfig).getBytes(StandardCharsets.UTF_8);
+
+			theMock.when(() -> natsConnection.getMaxPayload()).thenReturn((long) (expectedBytes.length + 1));
+
 			doNothing().when(natsConnection).publish(eq(TEST_TOPIC), eq(expectedBytes));
 
 			natsProducer.push(rowMap);
@@ -119,15 +143,40 @@ public class NatsProducerTest {
 	}
 
 	@Test
+	public void ignoreAndLogErrorIfMessageSizeIsBiggerThanMaxPayloadSize() throws Exception{
+		try (MockedStatic<Nats> theMock = Mockito.mockStatic(Nats.class)) {
+
+			LogCaptor logCaptor = LogCaptor.forClass(NatsProducer.class);
+
+			theMock.when(() -> Nats.connect(eq(option))).thenReturn(natsConnection);
+
+			NatsProducer natsProducer = new NatsProducer(contextMock);
+			RowMap rowMap = newRowMap();
+
+			byte[] expectedBytes = rowMap.toJSON(config.outputConfig).getBytes(StandardCharsets.UTF_8);
+
+			theMock.when(() -> natsConnection.getMaxPayload()).thenReturn((long) (expectedBytes.length - 1));
+
+			natsProducer.push(rowMap);
+
+			String exectedLogError = "->  nats message size (" + expectedBytes.length + ") > max payload size (" + (expectedBytes.length - 1) + ")";
+
+			Assert.assertTrue(logCaptor.getErrorLogs().contains(exectedLogError));
+		}
+	}
+
+	@Test
 	public void failToPushRowToSubject() throws Exception {
 		try (MockedStatic<Nats> theMock = Mockito.mockStatic(Nats.class)) {
-			theMock.when(() -> Nats.connect(eq(config.natsUrl))).thenReturn(natsConnection);
+			theMock.when(() -> Nats.connect(eq(option))).thenReturn(natsConnection);
 
 			NatsProducer natsProducer = new NatsProducer(contextMock);
 			RowMap rowMap = newRowMap();
 
 			byte[] expectedBytes = rowMap.toJSON(config.outputConfig).getBytes(StandardCharsets.UTF_8);
 			RuntimeException exception = new RuntimeException("Failed to publish message.");
+
+			theMock.when(() -> natsConnection.getMaxPayload()).thenReturn((long) (expectedBytes.length + 1));
 
 			doThrow(exception).when(natsConnection).publish(eq(TEST_TOPIC), eq(expectedBytes));
 

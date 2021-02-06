@@ -42,4 +42,8 @@ public class InterpolatedStringsHandler {
 		else
 			return this.copyOfInputString;
 	}
+
+	public String generateFromRowMapAndTrimAllWhitesSpaces(RowMap r){
+		return this.generateFromRowMap(r).replaceAll("\\s+","");
+	}
 }

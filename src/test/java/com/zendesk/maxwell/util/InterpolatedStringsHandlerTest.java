@@ -79,6 +79,19 @@ public class InterpolatedStringsHandlerTest {
 				equalTo("testDb.."));
 	}
 
+	@Test
+	public void generateFromRowMapCorrectlyAndTrimAllWhitesSpaces() {
+		InterpolatedStringsHandler dbTable = new InterpolatedStringsHandler("  %{database} .  %{table} \n");
+		assertThat(dbTable.generateFromRowMapAndTrimAllWhitesSpaces(newRowMap()), equalTo("testDb.testTable"));
+		assertThat(dbTable.generateFromRowMapAndTrimAllWhitesSpaces(new RowMap(null, "testDb", "testTable", System.currentTimeMillis(), Collections.emptyList(), new Position(new BinlogPosition(3, "mysql.1"), 0L))),
+				equalTo("testDb.testTable"));
+		assertThat(dbTable.generateFromRowMapAndTrimAllWhitesSpaces(new RowMap("insert", "testDb", null, System.currentTimeMillis(), Collections.emptyList(), new Position(new BinlogPosition(3, "mysql.1"), 0L))),
+				equalTo("testDb."));
+		assertThat(dbTable.generateFromRowMapAndTrimAllWhitesSpaces(new RowMap(null, "testDb", null, System.currentTimeMillis(), Collections.emptyList(), new Position(new BinlogPosition(3, "mysql.1"), 0L))),
+				equalTo("testDb."));
+
+	}
+
 	private RowIdentity newRowIdentity() {
 		return new RowIdentity( "testDb", "testTable", "insert", null);
 	}
