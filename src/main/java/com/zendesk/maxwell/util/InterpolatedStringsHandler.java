@@ -3,43 +3,75 @@ package com.zendesk.maxwell.util;
 import com.zendesk.maxwell.row.RowIdentity;
 import com.zendesk.maxwell.row.RowMap;
 
+/**
+ * An utility class to extrapolate subscription, channel templates.
+ * <p>
+ * An input string can contains any combination of:
+ * - %{db}
+ * - %{table}
+ * - %{type}
+ */
 public class InterpolatedStringsHandler {
-	private final String copyOfInputString;
+	private final String inputString;
+
 	private final boolean isInterpolated;
+
 	public InterpolatedStringsHandler(String inputString) {
-		this.copyOfInputString = inputString;
+		this.inputString = inputString;
 		this.isInterpolated = inputString.contains("%{");
 	}
 
-	public String generateFromRowIdentity(RowIdentity pk){
+	/**
+	 * Interpolate the input string based on {{{@link RowIdentity}}}
+	 * <p>
+	 * If your inputString contains a %{type} it will not be interpolated because we can't get type from RowIdentity.
+	 *
+	 * @param pk the rowIdentity
+	 * @return the interpollated string
+	 */
+	public String generateFromRowIdentity(RowIdentity pk) {
 		String table = pk.getTable();
-		if ( table == null )
+		if (table == null)
 			table = "";
 
-		if ( this.isInterpolated )
-			return this.copyOfInputString
-					.replaceAll("%\\{database\\}", pk.getDatabase())
-					.replaceAll("%\\{table\\}", table);
+		if (this.isInterpolated)
+			return interpolate(pk.getDatabase(), table, null);
 		else
-			return this.copyOfInputString;
+			return this.inputString;
 	}
 
-	public String generateFromRowMap(RowMap r){
+	/**
+	 * Interpolate the input string based on {{{@link RowMap}}}
+	 *
+	 * @param r the rowMap
+	 * @return the interpollated string
+	 */
+	public String generateFromRowMap(RowMap r) {
 		String table = r.getTable();
-		if ( table == null )
+		if (table == null)
 			table = "";
 
 		String type = r.getRowType();
 
-		if ( type == null )
+		if (type == null)
 			type = "";
 
-		if ( this.isInterpolated )
-			return this.copyOfInputString
-					.replaceAll("%\\{database\\}", r.getDatabase())
-					.replaceAll("%\\{table\\}", table)
-					.replaceAll("%\\{type\\}", type);
+		if (this.isInterpolated)
+			return interpolate(r.getDatabase(), table, type);
 		else
-			return this.copyOfInputString;
+			return this.inputString;
+	}
+
+	protected String interpolate(final String database, final String table, final String type) {
+		if (this.isInterpolated) {
+			final String typeReplacement = type != null ? type : "";
+
+			return this.inputString
+					.replaceAll("%\\{database\\}", database)
+					.replaceAll("%\\{table\\}", table)
+					.replaceAll("%\\{type\\}", typeReplacement);
+		} else {
+			return this.inputString;
+		}
 	}
 }
