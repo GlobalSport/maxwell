@@ -11,14 +11,14 @@ import com.zendesk.maxwell.row.RowMap;
  * - %{table}
  * - %{type}
  */
-public class InterpolatedStringsHandler {
+public class TopicInterpolator {
 	private final String inputString;
 
 	private final boolean isInterpolated;
 
-	public InterpolatedStringsHandler(String inputString) {
-		this.inputString = inputString;
-		this.isInterpolated = inputString.contains("%{");
+	public TopicInterpolator(final String templateString) {
+		this.inputString = templateString;
+		this.isInterpolated = templateString.contains("%{");
 	}
 
 	/**
