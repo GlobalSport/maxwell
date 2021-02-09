@@ -129,6 +129,13 @@ public class TopicInterpolatorTest {
 		assertThat(topicInterpolator.interpolate("testDb", null, "insert"), equalTo("testDb.insert"));
 	}
 
+	@Test
+	public void replaceAnyNonAlphaNumericCharacterBeforeInterpollation() {
+		TopicInterpolator topicInterpolator = new TopicInterpolator(DATABASE_TABLE_TYPE_TEMPLATE);
+
+		assertThat(topicInterpolator.interpolate("&test Db.db!", "&test Table.table!", "&insert t.table!"), equalTo("_test_Db_db_._test_Table_table_._insert_t_table_"));
+	}
+
 	private RowIdentity newRowIdentity() {
 		return new RowIdentity("testDb", "testTable", "insert", null);
 	}

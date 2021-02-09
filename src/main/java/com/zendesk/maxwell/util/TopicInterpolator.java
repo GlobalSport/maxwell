@@ -61,9 +61,9 @@ public class TopicInterpolator {
 
 
 			return this.inputString
-					.replaceAll("%\\{database\\}", emptyStringOnNull(database))
-					.replaceAll("%\\{table\\}", emptyStringOnNull(table))
-					.replaceAll("%\\{type\\}", emptyStringOnNull(typeReplacement));
+					.replaceAll("%\\{database\\}", cleanupIllegalCharacters(cleanupIllegalCharacters(emptyStringOnNull(database))))
+					.replaceAll("%\\{table\\}", cleanupIllegalCharacters(cleanupIllegalCharacters(emptyStringOnNull(table))))
+					.replaceAll("%\\{type\\}", cleanupIllegalCharacters(cleanupIllegalCharacters(emptyStringOnNull(typeReplacement))));
 		} else {
 			return this.inputString;
 		}
@@ -77,7 +77,13 @@ public class TopicInterpolator {
 		}
 	}
 
-	public String generateFromRowMapAndTrimAllWhitesSpaces(RowMap r){
-		return this.generateFromRowMap(r).replaceAll("\\s+","");
+	private String cleanupIllegalCharacters(final String value) {
+		return value
+				.replaceAll("([^A-Za-z0-9]+|[\\.\\s]+)", "_");
+
+	}
+
+	public String generateFromRowMapAndTrimAllWhitesSpaces(RowMap r) {
+		return this.generateFromRowMap(r).replaceAll("\\s+", "");
 	}
 }
