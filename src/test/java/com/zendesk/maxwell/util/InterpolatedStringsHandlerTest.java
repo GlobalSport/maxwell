@@ -101,18 +101,32 @@ public class InterpolatedStringsHandlerTest {
 	}
 
 
-        @Test
-	public void interpolateStringWithType() {
+	@Test
+	public void interpolateFullTopic() {
 		InterpolatedStringsHandler interpolatedStringsHandler = new InterpolatedStringsHandler(DATABASE_TABLE_TYPE_TEMPLATE);
 
 		assertThat(interpolatedStringsHandler.interpolate("testDb", "testTable", "insert"), equalTo("testDb.testTable.insert"));
 	}
 
 	@Test
-	public void interpolateStringWithoutType() {
+	public void interpolateTopicWithoutType() {
 		InterpolatedStringsHandler interpolatedStringsHandler = new InterpolatedStringsHandler(DATABASE_TABLE_TEMPLATE);
 
 		assertThat(interpolatedStringsHandler.interpolate("testDb", "testTable", null), equalTo("testDb.testTable"));
+	}
+
+	@Test
+	public void interpolateTopicWithoutDatabase() {
+		InterpolatedStringsHandler interpolatedStringsHandler = new InterpolatedStringsHandler("%{table}.%{type}");
+
+		assertThat(interpolatedStringsHandler.interpolate(null, "testTable", "insert"), equalTo("testTable.insert"));
+	}
+
+	@Test
+	public void interpolateTopicWithoutTable() {
+		InterpolatedStringsHandler interpolatedStringsHandler = new InterpolatedStringsHandler("%{database}.%{type}");
+
+		assertThat(interpolatedStringsHandler.interpolate("testDb", null, "insert"), equalTo("testDb.insert"));
 	}
 
 	private RowIdentity newRowIdentity() {

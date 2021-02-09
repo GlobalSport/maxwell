@@ -31,8 +31,6 @@ public class InterpolatedStringsHandler {
 	 */
 	public String generateFromRowIdentity(RowIdentity pk) {
 		String table = pk.getTable();
-		if (table == null)
-			table = "";
 
 		if (this.isInterpolated)
 			return interpolate(pk.getDatabase(), table, null);
@@ -48,13 +46,8 @@ public class InterpolatedStringsHandler {
 	 */
 	public String generateFromRowMap(RowMap r) {
 		String table = r.getTable();
-		if (table == null)
-			table = "";
 
 		String type = r.getRowType();
-
-		if (type == null)
-			type = "";
 
 		if (this.isInterpolated)
 			return interpolate(r.getDatabase(), table, type);
@@ -66,12 +59,21 @@ public class InterpolatedStringsHandler {
 		if (this.isInterpolated) {
 			final String typeReplacement = type != null ? type : "";
 
+
 			return this.inputString
-					.replaceAll("%\\{database\\}", database)
-					.replaceAll("%\\{table\\}", table)
-					.replaceAll("%\\{type\\}", typeReplacement);
+					.replaceAll("%\\{database\\}", emptyStringOnNull(database))
+					.replaceAll("%\\{table\\}", emptyStringOnNull(table))
+					.replaceAll("%\\{type\\}", emptyStringOnNull(typeReplacement));
 		} else {
 			return this.inputString;
+		}
+	}
+
+	private String emptyStringOnNull(final String value) {
+		if (value == null) {
+			return "";
+		} else {
+			return value;
 		}
 	}
 
